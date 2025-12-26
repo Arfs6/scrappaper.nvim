@@ -91,6 +91,7 @@ m.load = function()
 	local storage_file, err = io.open(m.storage_path)
 	if storage_file then
 		saved_scrap_papers_json = storage_file:read('*a')
+		storage_file:close()
 	else
 		print('scrappaper.nvim: error while loading saved scrap papers, using empty storage...', err)
 	end
@@ -141,6 +142,7 @@ m.save = function()
 		return
 	end
 	storage_file:write(saved_scrap_papers_json)
+	storage_file:close()
 	m.index = nil -- position of scrap papers has changed.
 end
 

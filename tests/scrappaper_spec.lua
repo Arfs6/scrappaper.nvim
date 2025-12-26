@@ -108,24 +108,18 @@ describe('scrappaper', function()
 
 		it('works_with_text', function()
 			-- Create a new io.open stub that returns an empty file.
-			local temp_file = io.tmpfile()
-			temp_file:write('[]')
-			local empty_open_stub = stub(io, 'open', function(filename, mode)
-				if mode ~= 'w' then
-					return nil, filename .. ': No such file or directory'
-				end
-				temp_file:seek('set')
-				return temp_file
-			end)
+			local empty_open_stub = stub(io, 'open', function() return io.tmpfile() end)
+			-- stub load to set saved_scrap_papers to an empty table.
+			local load_stub = stub(scrappaper, 'load', function() scrappaper.saved_scrap_papers = {} end)
 			local lines = { 'Line 1', 'Line2' }
 			api.nvim_buf_set_lines(0, 0, -1, true, lines)
 			scrappaper.save()
-			temp_file:seek('set')
-			local saved_scrap_papers = vim.fn.json_decode(temp_file:read('*a'))
-			assert.same(lines, saved_scrap_papers[1])
-			assert.equal(table.maxn(saved_scrap_papers), 1)
-			assert.stub(io.open).was_called(2)
+			assert.stub(io.open).was_called(1)
 			assert.stub(io.open).was_called_with(scrappaper.storage_path, 'w')
+			assert.same(lines, scrappaper.saved_scrap_papers[1])
+			assert.equal(#scrappaper.saved_scrap_papers, 1)
+			assert.stub(scrappaper.load).was_called(1)
+			load_stub:revert()
 			empty_open_stub:revert()
 		end)
 
@@ -151,11 +145,11 @@ describe('scrappaper', function()
 			for idx = 16, 1, -1 do
 				table.insert(saved_scrap_papers, { 'Scrap paper no: ' .. idx })
 			end
-			local temp_file = io.tmpfile()
-			temp_file:write(vim.fn.json_encode(saved_scrap_papers))
-			local save_open_stub = stub(io, 'open', function()
-				temp_file:seek('set')
-				return temp_file
+			local load_stub = stub(scrappaper, 'load', function()
+				scrappaper.saved_scrap_papers = saved_scrap_papers
+			end)
+			local open_empty_file = stub(io, 'open', function()
+				return io.tmpfile()
 			end)
 			local new_scrap_paper = { 'Scrap paper no: 17' }
 			api.nvim_buf_set_lines(0, 0, -1, true, new_scrap_paper)
@@ -163,7 +157,11 @@ describe('scrappaper', function()
 			table.insert(saved_scrap_papers, 1, new_scrap_paper)
 			table.remove(saved_scrap_papers)
 			assert.same(saved_scrap_papers, scrappaper.saved_scrap_papers)
-			save_open_stub:revert()
+			assert.stub(scrappaper.load).was_called(1)
+			assert.stub(io.open).was_called(1)
+			assert.stub(io.open).was_called_with(scrappaper.storage_path, 'w')
+			open_empty_file:revert()
+			load_stub:revert()
 		end)
 	end)
 
