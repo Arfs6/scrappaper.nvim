@@ -17,7 +17,7 @@ This is **not** a **notes** manager and it **doesn't** use a **floating window**
 
 ## Installation
 
-Install using your plugin manager or Neovim’s built-in package system.
+Install using your plugin manager or Neovim’s builtin plugin manager (See `:help vim.pack` for more information)
 
 Here is an example using [lazy.nvim](https://github.com/folke/lazy.nvim):
 
